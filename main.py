@@ -1,12 +1,8 @@
 import sys
-import requests
-import lxml.html
 import rdflib
+from ontology import build_ontology,PREFIX
 
-PREFIX = "http://example.org"
 g = rdflib.Graph()
-seed_address='https://en.wikipedia.org/wiki/List_of_Academy_Award-winning_films'
-relation_ontologies={}
 
 # helper function to extract entity
 def extract_entity(s, start, end):
@@ -135,119 +131,6 @@ def query(q_number,relation,entity,entity2):
 
     print(output)
 
-def add_if_not_empty(ont_name,xpath_result,key):
-
-    for i in range(len(xpath_result)):
-        result=xpath_result[i].replace(" ","_")
-
-        if result!='\n':
-            encoded_string=result.encode("ascii","ignore")
-            decode_string = encoded_string.decode()
-            ont_val=rdflib.URIRef(f'{PREFIX}/{decode_string}')
-            g.add((ont_name, relation_ontologies[key], ont_val))
-
-def process_page(address):
-    res=requests.get('https://en.wikipedia.org/'+address)
-    print('https://en.wikipedia.org/'+address)
-    doc = lxml.html.fromstring(res.content)
-    a=doc.xpath("//table[contains(@class,'infobox')]")
-    name = a[0].xpath("./tbody/tr[1]//text()")[0].replace(" ","_")
-    ont_name=rdflib.URIRef(f'{PREFIX}/{name}')
-
-    cnt = a[0].xpath("count(./tbody/tr[./th//text()='Directed by']/td//li)")
-    cnt2 = a[0].xpath("count(./tbody/tr[./th//text()='Directed by']/td//a)")
-    if cnt > 0:
-        xpath_result = a[0].xpath("./tbody/tr[./th//text()='Directed by']/td//li//text()")
-    elif cnt2 > 0:
-        xpath_result = a[0].xpath("./tbody/tr[./th//text()='Directed by']/td//a//text()")
-    else:
-        xpath_result = a[0].xpath("./tbody/tr[./th//text()='Directed by']/td//text()")
-    add_if_not_empty(ont_name,xpath_result,'ont_directed')
-
-    cnt=a[0].xpath("count(./tbody/tr[./th//text()='Produced by']/td//li)")
-    cnt2=a[0].xpath("count(./tbody/tr[./th//text()='Produced by']/td//a)")
-    if cnt>0:
-        xpath_result = a[0].xpath("./tbody/tr[./th//text()='Produced by']/td//li//text()")
-    elif cnt2>0:
-        xpath_result = a[0].xpath("./tbody/tr[./th//text()='Produced by']/td//a//text()")
-    else:
-        xpath_result=a[0].xpath("./tbody/tr[./th//text()='Produced by']/td//text()") # need to check if there is li tag
-    add_if_not_empty(ont_name,xpath_result,'ont_produced')
-
-    #ont_screened = a[0].xpath("./tbody/tr[./th/text()='Screenplay by']/td//text()")
-    cnt = a[0].xpath("count(./tbody/tr[./th//text()='Based on']/td//li)")
-    cnt2 = a[0].xpath("count(./tbody/tr[./th//text()='Based on']/td//a)")
-    if cnt > 0:
-        xpath_result = a[0].xpath("./tbody/tr[./th//text()='Based on']/td//li//text()")
-    elif cnt2 > 0:
-        xpath_result = a[0].xpath("./tbody/tr[./th//text()='Based on']/td//a//text()")
-    else:
-        xpath_result = a[0].xpath("./tbody/tr[./th//text()='Based on']/td//text()")  # need to check if there is li tag
-    add_if_not_empty(ont_name, xpath_result, 'ont_based')
-
-    cnt = a[0].xpath("count(./tbody/tr[./th//text()='Starring']/td//li)")
-    cnt2 = a[0].xpath("count(./tbody/tr[./th//text()='Starring']/td//a)")
-    if cnt > 0:
-        xpath_result = a[0].xpath("./tbody/tr[./th//text()='Starring']/td//li//text()")
-    elif cnt2 > 0:
-        xpath_result = a[0].xpath("./tbody/tr[./th//text()='Starring']/td//a//text()")
-    else:
-        xpath_result = a[0].xpath("./tbody/tr[./th//text()='Starring']/td//text()")  # need to check if there is li tag
-    add_if_not_empty(ont_name, xpath_result, 'ont_starring')
-
-    # need to adjust it to the forum's new instructions for release
-    cnt = a[0].xpath("count(./tbody/tr[./th//text()='Release date']/td//li)")
-    cnt2 = a[0].xpath("count(./tbody/tr[./th//text()='Release date']/td//a)")
-    if cnt > 0:
-        xpath_result = a[0].xpath("./tbody/tr[./th//text()='Release date']/td//li//text()")
-    elif cnt2 > 0:
-        xpath_result = a[0].xpath("./tbody/tr[./th//text()='Release date']/td//a//text()")
-    else:
-        xpath_result = a[0].xpath("./tbody/tr[./th//text()='Release date']/td//text()")  # need to check if there is li tag
-    add_if_not_empty(ont_name, xpath_result, 'ont_release')
-
-    cnt = a[0].xpath("count(./tbody/tr[./th//text()='Running time']/td//li)")
-    cnt2 = a[0].xpath("count(./tbody/tr[./th//text()='Running time']/td//a)")
-    if cnt > 0:
-        xpath_result = a[0].xpath("./tbody/tr[./th//text()='Running time']/td//li//text()")
-    elif cnt2 > 0:
-        xpath_result = a[0].xpath("./tbody/tr[./th//text()='Running time']/td//a//text()")
-    else:
-        xpath_result = a[0].xpath("./tbody/tr[./th//text()='Running time']/td//text()")  # need to check if there is li tag
-    add_if_not_empty(ont_name, xpath_result, 'ont_running')
-
-    g.serialize("ontology.nt",format="nt")
-
-
-def build_ontology():
-
-    ont_directed = rdflib.URIRef(f'{PREFIX}/directed_by')
-    ont_produced = rdflib.URIRef(f'{PREFIX}/produced_by')
-    ont_based = rdflib.URIRef(f'{PREFIX}/based_on')
-    ont_starring = rdflib.URIRef(f'{PREFIX}/starring')
-    ont_release = rdflib.URIRef(f'{PREFIX}/release_date')
-    ont_running = rdflib.URIRef(f'{PREFIX}/running_time')
-
-    relation_ontologies['ont_directed']=ont_directed
-    relation_ontologies['ont_produced'] = ont_produced
-    relation_ontologies['ont_based'] = ont_based
-    relation_ontologies['ont_starring'] = ont_starring
-    relation_ontologies['ont_release'] = ont_release
-    relation_ontologies['ont_running'] = ont_running
-
-    lst_of_address=[]
-    res=requests.get(seed_address)
-    doc=lxml.html.fromstring(res.content)
-    for t in doc.xpath("/html/body/div[3]/div[3]/div[5]/div[1]/table[1]/tbody[1]/tr/td[1]//a/@href"):
-        lst_of_address.append(t)
-
-    for address in lst_of_address:
-        process_page(address)
-
-
-
-
-
 
 if __name__ == "__main__":
 
@@ -257,5 +140,4 @@ if __name__ == "__main__":
         query(q_number,relation,entity,entity2)
 
     elif input=='create':
-        # TODO: build ontology using xpath
-        build_ontology()
+        build_ontology(g)
