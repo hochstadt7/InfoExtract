@@ -98,7 +98,10 @@ def query(q_number,relation,entity,entity2):
         res=g.query("select ?a where {<"+PREFIX +'/'+ entity + "> <"+PREFIX +'/'+ relation + "> ?a .}")
 
         # produce list of answers
-        output=', '.join([result[0][len(PREFIX)+1:].replace('_',' ') for result in res])
+        if q_number==9:
+            output = ', '.join([result[0][len(PREFIX) + 1:].replace('_', ' ') for result in res])
+        else:
+            output=', '.join([result[0][len(PREFIX)+1:].replace('_',' ') for result in res])
 
     elif q_number==3:
 

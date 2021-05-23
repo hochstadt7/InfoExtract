@@ -15,10 +15,15 @@ def add_triple(ont_name,xpath_result,key):
 
     encoded_string = result.encode("ascii", "ignore")
     decode_string = encoded_string.decode()
+    if key=='ont_occupation':
+        decode_string=decode_string.lower()
     ont_val = rdflib.URIRef(f'{PREFIX}/{decode_string}')
     g.add((ont_name, relation_ontologies[key], ont_val))
 
-def check_human(ont_name,a,str1,str2):
+#def extract_year(txt):
+
+
+def check_human_page(ont_name,a,str1,str2):
 
     td = a[0].xpath("./tbody/tr[./th//text()='"+str1+"']/td")
 
@@ -27,7 +32,7 @@ def check_human(ont_name,a,str1,str2):
             bdays=td[0].xpath(".//span[contains(@class,'bday')]")
             if not bdays:
 
-                return
+                return # need to return the year
             else:
                 for bday in bdays:
                     add_triple(ont_name,bday.xpath("./text()"),str2)
@@ -36,75 +41,30 @@ def check_human(ont_name,a,str1,str2):
             g.add((ont_name, relation_ontologies['ont_award'],rdflib.URIRef(f'{PREFIX}/Yes') )) # Does award, we don't really care on which.
             return
 
-        lis = td[0].xpath("./div/ul/li")
-        for li in lis:
-
-            iss = li.xpath(".//i")
+        iss = td[0].xpath(".//i")
+        # ont_occupation
+        if iss:
             for i in iss:
-
                 links = i.xpath("./a")
-                if not links:
+                if links:
+                    add_triple(ont_name, links[0].xpath("./text()"), str2)  # assuming only 1 link possible under i
+                else:
                     add_triple(ont_name, i.xpath("./text()"), str2)
-                else:
-                    for link in links:
-                        add_triple(ont_name, link.xpath("./text()"), str2)
-
-            if not iss:
-                links = li.xpath("./a")
-                if not links:
-                    add_triple(ont_name, li.xpath("./text()"), str2)
-                else:
-                    for link in links:
-                        add_triple(ont_name, link.xpath("./text()"), str2)
-
-        if not lis:
-            lis = td[0].xpath("./ul/li")
-            for li in lis:
-
-                iss = li.xpath(".//i")
-                for i in iss:
-
-                    links = i.xpath("./a")
-                    if not links:
-                        add_triple(ont_name, i.xpath("./text()"), str2)
-                    else:
-                        for link in links:
-                            add_triple(ont_name, link.xpath("./text()"), str2)
-
-                if not iss:
+        else:
+            lis = td[0].xpath(".//li") # not like in movies, cuz of one case (Glen Greewald)
+            if lis:
+                for li in lis:
                     links = li.xpath("./a")
-                    if not links:
+                    if links:
+                        add_triple(ont_name, links[0].xpath("./@href"), str2)  # assuming only 1 link possible under li
+                    else:
                         add_triple(ont_name, li.xpath("./text()"), str2)
-                    else:
-                        for link in links:
-                            add_triple(ont_name, link.xpath("./text()"), str2)
-        if not lis:
-
-            iss = td[0].xpath(".//i")
-            for i in iss:
-
-                links = i.xpath("./a")
-                if not links:
-                    add_triple(ont_name, i.xpath("./text()"), str2)
+            else:
+                links = td[0].xpath("./a")
+                if links:
+                    add_triple(ont_name, links[0].xpath("./@href"), str2)  # assuming only 1 link possible under li
                 else:
-                    for link in links:
-                        add_triple(ont_name, link.xpath("./text()"), str2)
-            if not iss:
-                dvs=td[0].xpath("./div")
-                for dv in dvs:
-                    links = dv.xpath("./a")
-                    if not links:
-                        add_triple(ont_name, dv.xpath("./text()"), str2)
-                    else:
-                        for link in links:
-                            add_triple(ont_name, link.xpath("./text()"), str2)
-                if not dvs:
-                    links = td[0].xpath("./a")
-                    if not links:
-                        add_triple(ont_name, td[0].xpath("./text()"), str2)
-                    else:
-                        for link in links:
-                            add_triple(ont_name, link.xpath("./text()"), str2)
+                    add_triple(ont_name, td[0].xpath("./text()"), str2)
 
 
 def human_process(address):
@@ -117,18 +77,18 @@ def human_process(address):
         if name:
             name = name[0].replace(" ", "_")
             ont_name = rdflib.URIRef(f'{PREFIX}/{name}')
-            check_human(ont_name, a, 'Born', 'ont_born')
-            check_human(ont_name, a, 'Occupation', 'ont_occupation')
-            check_human(ont_name, a, 'Awards', 'ont_award')
+            check_human_page(ont_name, a, 'Born', 'ont_born')
+            check_human_page(ont_name, a, 'Occupation', 'ont_occupation')
+            check_human_page(ont_name, a, 'Awards', 'ont_award')
 
             g.serialize("ontology.nt", format="nt")
 
 # check for some possible structures of the infobox
-def check_cases(ont_name,a,str1,str2):
+def check_movie_page(ont_name,a,str1,str2):
 
     td = a[0].xpath("./tbody/tr[./th//text()='"+str1+"']/td")
 
-    if td != []:
+    if td:
         if str1=='Release date':
             bdays=td[0].xpath(".//span[contains(@class,'bday')]")
             if not bdays:
@@ -143,75 +103,41 @@ def check_cases(ont_name,a,str1,str2):
             g.add((ont_name, relation_ontologies['ont_based'],rdflib.URIRef(f'{PREFIX}/Yes') )) # Is based on, we don't really care on what.
             return
 
-        lis = td[0].xpath("./div/ul/li")
-        for li in lis:
-
-            iss = li.xpath(".//i")
+        iss=td[0].xpath(".//i")
+        if iss:
             for i in iss:
-
                 links = i.xpath("./a")
-                if not links:
+                if links:
+                    add_triple(ont_name, links[0].xpath("./text()"), str2) # assuming only 1 link possible under i
+                    if str1 != 'Running time':
+                        human_process(links[0].xpath("./@href"))
+                else:
                     add_triple(ont_name, i.xpath("./text()"), str2)
-                else:
-                    for link in links:
-                        add_triple(ont_name, link.xpath("./text()"), str2)
-                    if str1 in ['Directed by', 'Produced by', 'Starring']:
-                        for link in links:
-
-                            human_process(link.xpath("./@href"))
-
-            if not iss:
-                links = li.xpath("./a")
-                if not links:
-                    add_triple(ont_name, li.xpath("./text()"), str2)
-                else:
-                    for link in links:
-                        add_triple(ont_name, link.xpath("./text()"), str2)
-                    if str1 in ['Directed by', 'Produced by', 'Starring']:
-                        for link in links:
-                            human_process(link.xpath("./@href"))
-        if not lis:
-
-            iss = td[0].xpath(".//i")
-            for i in iss:
-
-                links = i.xpath("./a")
-                if not links:
-                    add_triple(ont_name, i.xpath("./text()"), str2)
-                else:
-                    for link in links:
-                        add_triple(ont_name, link.xpath("./text()"), str2)
-                    if str1 in ['Directed by', 'Produced by', 'Starring']:
-                        for link in links:
-                            human_process(link.xpath("./@href"))
-            if not iss:
-                dvs=td[0].xpath("./div")
-                for dv in dvs:
-                    links = dv.xpath("./a")
-                    if not links:
-                        add_triple(ont_name, dv.xpath("./text()"), str2)
+        else:
+            lis=td[0].xpath("./div/ul/li") # assume li must be under div/ul. if not, use .//li
+            if lis:
+                for li in lis:
+                    links=li.xpath("./a")
+                    if links:
+                        add_triple(ont_name, links[0].xpath("./text()"), str2) # assuming only 1 link possible under li
+                        if str1 != 'Running time':
+                            human_process(links[0].xpath("./@href"))
                     else:
-                        for link in links:
-                            add_triple(ont_name, link.xpath("./text()"), str2)
-                        if str1 in ['Directed by', 'Produced by', 'Starring']:
-                            for link in links:
-                                human_process(link.xpath("./@href"))
-                if not dvs:
-                    links = td[0].xpath("./a")
-                    if not links:
-                        add_triple(ont_name, td[0].xpath("./text()"), str2)
-                    else:
-                        for link in links:
-                            add_triple(ont_name, link.xpath("./text()"), str2)
-                        if str1 in ['Directed by', 'Produced by', 'Starring']:
-                            for link in links:
-                                human_process(link.xpath("./@href"))
+                        add_triple(ont_name, li.xpath("./text()"), str2)
+            else:
+                links=td[0].xpath("./a")
+                if links:
+                    add_triple(ont_name, links[0].xpath("./text()"), str2)  # assuming only 1 link possible under li
+                    if str1 != 'Running time':
+                        human_process(links[0].xpath("./@href"))
+                else:
+                    add_triple(ont_name, td[0].xpath("./text()"), str2)
+
 
 
 
 # process page by the six elements that are required to the questions (for the movies)
-# todo: process actors, film directors, etc.
-def process_page(address):
+def movie_process(address):
     res=requests.get('https://en.wikipedia.org/'+address)
     print('https://en.wikipedia.org/'+address)
     doc = lxml.html.fromstring(res.content)
@@ -219,12 +145,12 @@ def process_page(address):
     name = a[0].xpath("./tbody/tr[1]//text()")[0].replace(" ","_")
 
     ont_name=rdflib.URIRef(f'{PREFIX}/{name}')
-    check_cases(ont_name,a,'Directed by','ont_directed')
-    check_cases(ont_name, a, 'Produced by', 'ont_produced')
-    check_cases(ont_name, a, 'Based on', 'ont_based')
-    check_cases(ont_name, a, 'Starring', 'ont_starring')
-    check_cases(ont_name, a, 'Release date', 'ont_release')
-    check_cases(ont_name, a, 'Running time', 'ont_running')
+    check_movie_page(ont_name,a,'Directed by','ont_directed')
+    check_movie_page(ont_name, a, 'Produced by', 'ont_produced')
+    check_movie_page(ont_name, a, 'Based on', 'ont_based')
+    check_movie_page(ont_name, a, 'Starring', 'ont_starring')
+    check_movie_page(ont_name, a, 'Release date', 'ont_release')
+    check_movie_page(ont_name, a, 'Running time', 'ont_running')
 
     g.serialize("ontology.nt",format="nt")
 
@@ -261,6 +187,6 @@ def build_ontology():
         lst_of_address.append(t)
 
     for address in lst_of_address:
-        process_page(address)
+        movie_process(address)
         #process_page('/wiki/Amy_(2015_film)')
         #break
