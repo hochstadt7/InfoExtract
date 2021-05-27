@@ -10,20 +10,21 @@ def extract_entity(s, start, end):
     start = s.index(start) + len(start)
     end = s.index(end, start)
 
-    return s[start:end] # the right index?
+    return s[start:end]
 
 # extract entity, relation and possibly second entity
 def extract_q_info(s):
 
     relation=entity=entity2=''
-    # relation is saved as appears in the infobox on wiki, with lowercase and _ instead of space
+
     q_number=0
+
     if s[:2]=='Is':
 
         q_number=3
         relation = 'based_on'
         entity=extract_entity(s,'Is ',' based on')
-        print(entity)
+
 
     elif s[:3]=='Who':
         if 'directed' in s:
@@ -47,11 +48,13 @@ def extract_q_info(s):
         entity=extract_entity(s, 'star in ', '?')
 
     elif s[:3]=='How':
+
         if 'long' in s:
             q_number = 5
             relation = 'running_time'
             entity =extract_entity(s, 'is ', '?')
-        elif 'based_on' in s:
+        elif 'based on' in s:
+
             q_number = 10
             relation='based_on'
         elif 'starring' in s:
@@ -59,6 +62,7 @@ def extract_q_info(s):
             relation='starring'
             entity=extract_entity(s,'starring ', ' won')
         else:
+
             q_number = 12
             relation='occupation'
             entity=extract_entity(s,'many ',' are')
@@ -94,7 +98,6 @@ def query(q_number,relation,entity,entity2):
 
 
     if q_number==1 or q_number==2 or q_number==4 or q_number==5 or q_number==6 or q_number==8 or q_number==9:
-        print("select ?a where {<"+PREFIX + '/'+entity + "> <"+PREFIX +'/'+ relation + "> ?a .}")
         res=g.query("select ?a where {<"+PREFIX +'/'+ entity + "> <"+PREFIX +'/'+ relation + "> ?a .}")
         sorted_list=sorted([result[0][len(PREFIX) + 1:].replace('_', ' ') for result in res])
         output = ', '.join(sorted_list)
@@ -102,16 +105,14 @@ def query(q_number,relation,entity,entity2):
 
 
     elif q_number==3:
-
         res=g.query("select (COUNT(?a) as ?CNT) where {<"+PREFIX +'/'+ entity + "> <"+PREFIX +'/'+ relation + "> ?a .}") # how do we know if type is book? need to add to ontology too?
-        output=list(res)[0]
+        output=list(res)[0][0]
         if output:
             output='Yes'
         else:
             output='No'
 
     elif q_number==7:
-        print("ASK {<"+PREFIX +'/'+ entity + "> <"+PREFIX +'/'+ relation + "> <"+PREFIX+'/'+entity2+ "> .}")
         res=g.query("ASK {<"+PREFIX +'/'+ entity + "> <"+PREFIX +'/'+ relation + "> <"+PREFIX+'/'+entity2+ "> .}")
         output=list(res)[0]
         if output:
@@ -120,36 +121,28 @@ def query(q_number,relation,entity,entity2):
             output='No'
 
     elif q_number==10:
-        print("select (COUNT(?a) as ?CNT) where {?a <"+PREFIX +'/'+ relation + "> <"+PREFIX +'/'+ entity + "> .}")
-        res=g.query("select (COUNT(?a) as ?CNT) where {?a <"+PREFIX +'/'+ relation + "> <"+PREFIX +'/'+ entity + "> .}") # how do we know if type is book? need to add to ontology too?
-        output = list(res)[0]
+        res=g.query("select (COUNT(?a) as ?CNT) where {?a <"+PREFIX +'/'+ relation + "> ?s .}")
+        output = str(list(res)[0][0])
 
     elif q_number==11:
-        print("select (COUNT(?s) as ?CNT) where {?s <"+PREFIX +'/'+ relation + "> <"+ PREFIX+'/'+entity+"> ."\
-                       "?s <"+PREFIX+'/'+"award" +"> ?b .}")
-        res=g.query("select (COUNT(?s) as ?CNT) where {?s <"+PREFIX +'/'+ relation + "> <"+ PREFIX+'/'+entity+"> ."\
-                       "?s <"+PREFIX+'/'+"award" +"> ?b .}"
-        )
-
-        sorted_list=[result[0] for result in res]
-        output = sorted_list[0]
+        res=g.query("select (COUNT(?s) as ?CNT) where {?s <"+PREFIX +'/'+ relation + "> <"+ PREFIX+'/'+entity+"> .}")
+        output = str(list(res)[0][0])
 
 
     elif q_number==12:
-        print("select (COUNT(?s) as ?CNT) where {?s <"+PREFIX +'/'+ relation + "> <"+PREFIX +'/'+entity+ "> ." \
-                            "?s <"+PREFIX +'/'+ relation + "> <"+PREFIX +'/'+entity2+ "> .}")
         res = g.query("select (COUNT(?s) as ?CNT) where {?s <"+PREFIX +'/'+ relation + "> <"+PREFIX +'/'+entity+ "> ." \
                             "?s <"+PREFIX +'/'+ relation + "> <"+PREFIX +'/'+entity2+ "> .}"
                          )
-        output=list(res)[0]
+        output=str(list(res)[0][0])
 
     else:
         output=None
+
     return output
-    #print(output)
 
 
-'''if __name__ == "__main__":
+
+if __name__ == "__main__":
 
     input=sys.argv[1]
     if input=='question':
@@ -158,11 +151,5 @@ def query(q_number,relation,entity,entity2):
         query(q_number,relation,entity,entity2)
 
     elif input=='create':
-        build_ontology()'''
+        build_ontology()
 
-def parse_ontology_from_file():
-    build_ontology()
-
-def answer_question(question):
-    q_number, relation, entity, entity2 = extract_q_info(question)
-    return query(q_number, relation, entity, entity2)

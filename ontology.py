@@ -8,7 +8,7 @@ relation_ontologies={}
 g = rdflib.Graph()
 set_of_people=set()
 
-# add triple to our ontology
+# add a triple to our ontology
 def add_triple(ont_name,xpath_result,key):
 
     result=xpath_result[0]
@@ -22,13 +22,14 @@ def add_triple(ont_name,xpath_result,key):
         for splits in splitted:
 
             ont_val = rdflib.URIRef(f'{PREFIX}/{splits.strip().replace(" ","_")}')
-            print(f'{PREFIX}/{splits.strip().replace(" ","_")}')
+            #print(f'{PREFIX}/{splits.strip().replace(" ","_")}')
             g.add((ont_name, relation_ontologies[key], ont_val))
     else:
-        print(f'{PREFIX}/{decode_string.replace(" ","_")}')
-        ont_val = rdflib.URIRef(f'{PREFIX}/{decode_string.replace(" ","_")}')
+        #print(f'{PREFIX}/{decode_string.strip().replace(" ","_")}')
+        ont_val = rdflib.URIRef(f'{PREFIX}/{decode_string.strip().replace(" ","_")}')
         g.add((ont_name, relation_ontologies[key], ont_val))
 
+# extract year for born field
 def extract_year(txt):
 
     if not txt:
@@ -42,12 +43,13 @@ def extract_year(txt):
         else:
             j=0
         if j==4:
-            if i<n-1 and txt[i+1]=='/':
+            if i<n-1 and txt[i+1]=='/': # example format: 1976/1977
                 return txt[i-3:i+6]
-            return [txt[i-3:i+1]]
+            return [txt[i-3:i+1]] # example format: 1976
         i+=1
     return [""]
 
+# check content in the human info box
 def check_human_page(ont_name,a,str1,str2):
 
     td = a[0].xpath("./tbody/tr[./th//text()='"+str1+"']/td")
@@ -64,19 +66,14 @@ def check_human_page(ont_name,a,str1,str2):
                 add_triple(ont_name,bdays[0].xpath("./text()"),str2)
                 return
 
-        elif str1=='Awards':
-
-            g.add((ont_name, relation_ontologies['ont_award'],rdflib.URIRef(f'{PREFIX}/Yes') )) # not what they wanted for q11
-            return
-
         iss = td[0].xpath(".//i")
         # ont_occupation
         if iss:
             for i in iss:
                 links = i.xpath("./a")
                 if links:
-
-                    add_triple(ont_name, links[0].xpath("./text()"), str2)
+                    link_occupy=links[0].xpath("./@href")
+                    add_triple(ont_name, [link_occupy[0][6:]], str2)
                 else:
                     add_triple(ont_name, i.xpath("./text()"), str2)
         else:
@@ -85,17 +82,19 @@ def check_human_page(ont_name,a,str1,str2):
                 for li in lis:
                     links = li.xpath("./a")
                     if links:
-                        add_triple(ont_name, links[0].xpath("./text()"), str2)
+                        link_occupy = links[0].xpath("./@href")
+                        add_triple(ont_name, [link_occupy[0][6:]], str2)
                     else:
                         add_triple(ont_name, li.xpath("./text()"), str2)
             else:
                 links = td[0].xpath("./a")
                 if links:
-                    add_triple(ont_name, links[0].xpath("./text()"), str2)
+                    link_occupy = links[0].xpath("./@href")
+                    add_triple(ont_name, [link_occupy[0][6:]], str2)
                 else:
                     add_triple(ont_name, td[0].xpath("./text()"), str2)
 
-
+# process human pages by the all elements that are required to the questions
 def human_process(address):
     human_link = address[0]
 
@@ -110,13 +109,9 @@ def human_process(address):
             ont_name = rdflib.URIRef(f'{PREFIX}{human_link[5:]}')
             check_human_page(ont_name, a, 'Born', 'ont_born')
             check_human_page(ont_name, a, 'Occupation', 'ont_occupation')
-            check_human_page(ont_name, a, 'Awards', 'ont_award')
 
 
-
-
-
-# check for some possible structures of the infobox
+# check content in the movie info box
 def check_movie_page(ont_name,a,str1,str2):
 
     td = a[0].xpath("./tbody/tr[./th//text()='"+str1+"']/td")
@@ -133,7 +128,7 @@ def check_movie_page(ont_name,a,str1,str2):
                 return
 
         elif str1=='Based on':
-            g.add((ont_name, relation_ontologies['ont_based'],rdflib.URIRef(f'{PREFIX}/Yes') )) # Is based on, we don't really care on what.
+            g.add((ont_name, relation_ontologies['ont_based'],rdflib.URIRef(f'{PREFIX}/Yes') )) # based on book, we don't really care on which
             return
 
         iss=td[0].xpath(".//i")
@@ -167,18 +162,22 @@ def check_movie_page(ont_name,a,str1,str2):
                 links=td[0].xpath("./a")
                 if links:
                     if str1 != 'Running time':
-                        abbrev = links[0].xpath("./@href")[0][6:]
-                        add_triple(ont_name, [abbrev], str2)
-                        human_process(links[0].xpath("./@href"))
+                        for link in links:
+                            contect_link = link.xpath("./@href")
+                            sub_abbrev=contect_link[0][6:]
+                            add_triple(ont_name, [sub_abbrev], str2)
+                            human_process([contect_link][0])
                     else:
                         add_triple(ont_name, links[0].xpath("./text()"), str2)
-                else:
-                    add_triple(ont_name, td[0].xpath("./text()"), str2)
+
+                try_fix=td[0].xpath("./text()")
+                for t in try_fix:
+                    add_triple(ont_name, [t], str2)
 
 
 
 
-# process page by the all elements that are required to the questions (for the movies)
+# process movie pages by the all elements that are required to the questions
 def movie_process(address):
 
     res=requests.get('https://en.wikipedia.org/'+address)
@@ -209,7 +208,6 @@ def build_ontology():
 
     ont_born=rdflib.URIRef(f'{PREFIX}/born')
     ont_occupation = rdflib.URIRef(f'{PREFIX}/occupation')
-    ont_award=rdflib.URIRef(f'{PREFIX}/award')
 
     relation_ontologies['ont_directed']=ont_directed
     relation_ontologies['ont_produced'] = ont_produced
@@ -220,7 +218,7 @@ def build_ontology():
 
     relation_ontologies['ont_born'] = ont_born
     relation_ontologies['ont_occupation'] = ont_occupation
-    relation_ontologies['ont_award'] = ont_award
+
 
     lst_of_address=[]
     res=requests.get(seed_address)
@@ -231,5 +229,3 @@ def build_ontology():
 
     for address in lst_of_address:
         movie_process(address)
-        #movie_process('/wiki/Bao_(film)')
-        #break
