@@ -7,6 +7,7 @@ seed_address='https://en.wikipedia.org/wiki/List_of_Academy_Award-winning_films'
 relation_ontologies={}
 g = rdflib.Graph()
 set_of_people=set()
+delete_empty_val="http://example.org/"
 
 # add a triple to our ontology
 def add_triple(ont_name,xpath_result,key):
@@ -20,13 +21,13 @@ def add_triple(ont_name,xpath_result,key):
 
         splitted=decode_string.split(',')
         for splits in splitted:
-
-            ont_val = rdflib.URIRef(f'{PREFIX}/{splits.strip().replace(" ","_")}')
-            #print(f'{PREFIX}/{splits.strip().replace(" ","_")}')
-            g.add((ont_name, relation_ontologies[key], ont_val))
+            candidate=f'{PREFIX}/{splits.strip().replace(" ","_")}'
+            if not candidate == delete_empty_val:
+                ont_val = rdflib.URIRef(candidate)
+                g.add((ont_name, relation_ontologies[key], ont_val))
     else:
-        #print(f'{PREFIX}/{decode_string.strip().replace(" ","_")}')
-        ont_val = rdflib.URIRef(f'{PREFIX}/{decode_string.strip().replace(" ","_")}')
+        candidate=f'{PREFIX}/{decode_string.strip().replace(" ","_")}'
+        ont_val = rdflib.URIRef(candidate)
         g.add((ont_name, relation_ontologies[key], ont_val))
 
 # extract year for born field
@@ -43,8 +44,8 @@ def extract_year(txt):
         else:
             j=0
         if j==4:
-            if i<n-1 and txt[i+1]=='/': # example format: 1976/1977
-                return txt[i-3:i+6]
+            '''if i<n-1 and txt[i+1]=='/': # example format: 1976/1977
+                return txt[i-3:i+6]'''
             return [txt[i-3:i+1]] # example format: 1976
         i+=1
     return [""]
@@ -89,10 +90,17 @@ def check_human_page(ont_name,a,str1,str2):
             else:
                 links = td[0].xpath("./a")
                 if links:
-                    link_occupy = links[0].xpath("./@href")
-                    add_triple(ont_name, [link_occupy[0][6:]], str2)
-                else:
-                    add_triple(ont_name, td[0].xpath("./text()"), str2)
+                    for link in links:
+                        content_link = link.xpath("./@href")
+                        sub_abbrev = content_link[0][6:]
+                        add_triple(ont_name, [sub_abbrev], str2)
+
+
+                try_fix = td[0].xpath("./text()")
+                for t in try_fix:
+                    add_triple(ont_name, [t], str2)
+
+
 
 # process human pages by the all elements that are required to the questions
 def human_process(address):
@@ -181,7 +189,7 @@ def check_movie_page(ont_name,a,str1,str2):
 def movie_process(address):
 
     res=requests.get('https://en.wikipedia.org/'+address)
-    #print('https://en.wikipedia.org/'+address)
+    print('https://en.wikipedia.org/'+address)
     doc = lxml.html.fromstring(res.content)
     a=doc.xpath("//table[contains(@class,'infobox')]")
 
