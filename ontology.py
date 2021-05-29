@@ -22,7 +22,7 @@ def add_triple(ont_name,xpath_result,key):
         split_words=decode_string.split(',')
         for occuation in split_words:
             candidate=f'{PREFIX}/{occuation.strip().replace(" ","_")}'
-            if not candidate == empty_ontology:
+            if not candidate == empty_ontology: # filtering empty ontology
                 ont_val = rdflib.URIRef(candidate)
                 g.add((ont_name, relation_ontologies[key], ont_val))
     else:

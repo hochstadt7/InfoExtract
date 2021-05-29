@@ -146,7 +146,7 @@ def query(q_number,relation,entity,entity2):
 
     else:
         output=None
-    return output
+    print(output)
 
 
 
