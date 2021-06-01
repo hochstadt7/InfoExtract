@@ -152,7 +152,7 @@ def query(q_number,relation,entity,entity2):
 
 if __name__ == "__main__":
 
-    input = sys.argv[1]
+    input=sys.argv[1]
     if input=='question':
 
         q_number,relation,entity,entity2 = extract_q_info(sys.argv[2])

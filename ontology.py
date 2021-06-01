@@ -7,7 +7,7 @@ seed_address='https://en.wikipedia.org/wiki/List_of_Academy_Award-winning_films'
 relation_ontologies={}
 g = rdflib.Graph()
 set_of_people=set()
-empty_ontology = "http://example.org/"
+empty_ontology="http://example.org/"
 
 # add a triple to our ontology
 def add_triple(ont_name,xpath_result,key):
