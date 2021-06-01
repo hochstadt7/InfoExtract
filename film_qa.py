@@ -2,7 +2,7 @@ import sys
 import rdflib
 from ontology import build_ontology,PREFIX
 
-g = rdflib.Graph()
+g=rdflib.Graph()
 
 # helper function to extract entity
 def extract_entity(s, start, end):
