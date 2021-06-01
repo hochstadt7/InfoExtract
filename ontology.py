@@ -14,7 +14,7 @@ def add_triple(ont_name,xpath_result,key):
 
     result=xpath_result[0]
 
-    encoded_string = result.encode("ascii", "ignore")
+    encoded_string = result.encode("ascii", "ignore") # get rid of non ascii characters
     decode_string = encoded_string.decode()
     if key=='ont_occupation':
         decode_string=decode_string.lower()
@@ -171,10 +171,10 @@ def check_movie_page(ont_name,a,relation,ont_relation):
                 if links:
                     if relation != 'Running time':
                         for link in links:
-                            contect_link = link.xpath("./@href")
-                            sub_link=contect_link[0][6:] # get rid of prefix
+                            content_link = link.xpath("./@href")
+                            sub_link=content_link[0][6:] # get rid of prefix
                             add_triple(ont_name, [sub_link], ont_relation)
-                            human_process([contect_link][0])
+                            human_process([content_link][0])
                     else:
                         add_triple(ont_name, links[0].xpath("./text()"), ont_relation)
 
@@ -228,12 +228,12 @@ def build_ontology():
     relation_ontologies['ont_occupation'] = ont_occupation
 
 
-    lst_of_links=[]
+    list_of_links=[]
     res=requests.get(seed_address)
     doc=lxml.html.fromstring(res.content)
     # get all movies from main page
     for t in doc.xpath("/html/body/div[3]/div[3]/div[5]/div[1]/table[1]/tbody[1]/tr[./td[2]/a/text()>2009]/td[1]//a/@href"):
-        lst_of_links.append(t)
+        list_of_links.append(t)
 
-    for address in lst_of_links:
+    for address in list_of_links:
         movie_process(address)

@@ -114,7 +114,7 @@ def query(q_number,relation,entity,entity2):
 
 
     elif q_number==3:
-        res=g.query("select (COUNT(?a) as ?CNT) where {<"+PREFIX +'/'+ entity + "> <"+PREFIX +'/'+ relation + "> ?a .}") # how do we know if type is book? need to add to ontology too?
+        res=g.query("select (COUNT(?a) as ?CNT) where {<"+PREFIX +'/'+ entity + "> <"+PREFIX +'/'+ relation + "> ?a .}")
         output=list(res)[0][0]
         if output:
             output='Yes'
@@ -160,4 +160,3 @@ if __name__ == "__main__":
 
     elif input=='create':
         build_ontology()
-
