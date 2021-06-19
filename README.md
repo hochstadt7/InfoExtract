@@ -1,3 +1,4 @@
 # InformationExtraction
 
-Information Extraction using Xpath and Sparql, for Web Data Managment course.
+A system for answering questions in natural language about Oscar-winning films, using ontologies,
+HTML, SPARQL and Xpath.
